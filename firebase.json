@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "cuidaconecta",
+          "appId": "1:632370293099:android:b7fd9034ed682f8af0c42e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "cuidaconecta",
+          "configurations": {
+            "android": "1:632370293099:android:b7fd9034ed682f8af0c42e",
+            "ios": "1:632370293099:ios:d9287222f0243fc8f0c42e",
+            "macos": "1:632370293099:ios:d9287222f0243fc8f0c42e",
+            "web": "1:632370293099:web:4f6db4fe374078dcf0c42e",
+            "windows": "1:632370293099:web:a1505d73e89c3629f0c42e"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}
