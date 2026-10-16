@@ -1,2 +1,2 @@
 # CuidaConecta
-Prototipo aplicación móvil para servicios de cuidados domiciliarios para adultos mayores desarrollada con Flutter.
+Proyecto de titulo final para la carrera "Ingenieria en Computacion e informatica" de "Universidad Andres Bello" año 2026
