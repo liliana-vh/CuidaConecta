@@ -18,7 +18,7 @@ Su objetivo es facilitar la conexión entre personas que requieren servicios de 
 - Publicación y consulta de avisos de servicios de cuidadores.
 - Creación y gestión de solicitudes de servicios.
 - Carga de imágenes y archivos multimedia.
-- simulación de pagso
+- Simulación de pagos.
 
 ## Requisitos previos
 
@@ -38,7 +38,7 @@ Para ejecutar el proyecto localmente se necesita:
 
 2. Ingresar a la carpeta del proyecto:
 
-   cd cuida_conecta
+   cd CuidaConecta
 
 3. Instalar las dependencias:
 
@@ -48,11 +48,10 @@ Para ejecutar el proyecto localmente se necesita:
 
    flutter run
 
-
 ## Estado del proyecto
 
 CuidaConecta se encuentra en etapa de desarrollo como prototipo funcional móvil para fines académicos.
 
 ## Autoría
 
-Proyecto desarrollado como parte del Proyecto de Título de Ingeniería en Computación e Informática, Universidad Andrés Bello, Chile.
+Proyecto desarrollado como parte del Proyecto de Título de Ingeniería en Computación e Informática de la Universidad Andrés Bello, Chile, durante el año 2026.
