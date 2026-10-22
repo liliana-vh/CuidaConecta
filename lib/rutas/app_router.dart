@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 // cosas no hechas aun (chat, comprobantes, evaluaciones, hacer pantalla 'falsa' sim pago o solo boton? PREGUNTAR PROFE)
-import '../view/widgets/placeholder_funcionalidad.dart';
+// import '../view/widgets/placeholder_funcionalidad.dart';
 
 // bienvenida y autenticacion
 import '../view/bienvenida.dart';
@@ -32,6 +32,8 @@ import '../view/historial_solicitudes_ui.dart';
 import '../view/solicitudes_ui.dart';
 import '../view/detalle_solicitud_ui.dart';
 import '../view/widgets/visor_pdf.dart';
+import '../view/chats_ui.dart';
+import '../view/chat_ui.dart';
 
 // flujo cuidador
 import '../view/cuidador/inicio_c_ui.dart';
@@ -215,7 +217,7 @@ final List<RouteBase> _rutasCuidador = [
     branches: [
       _rama('/cuidador/inicio', () => const InicioCuidadorView()),
       _rama('/cuidador/servicios', () => const SolicitudesView.cuidador()),
-      _rama('/cuidador/mensajes', () => const PlaceholderFuncionalidad()),
+      _rama('/cuidador/mensajes', () => const ChatsView.cuidador()),
       _rama('/cuidador/perfil', () => const PerfilCuidadorView()),
     ],
   ),
@@ -245,6 +247,14 @@ final List<RouteBase> _rutasCuidador = [
   GoRoute(
     path: '/cuidador/historial-solicitudes',
     builder: (_, __) => const HistorialSolicitudesView.cuidador(),
+  ),
+  GoRoute(
+    path: '/cuidador/chat/:id',
+    builder: (_, state) => ChatView(idSolicitud: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/cuidador/historial-chats',
+    builder: (_, __) => const HistorialChatsView.cuidador(),
   ),
 ];
 
@@ -276,7 +286,7 @@ final List<RouteBase> _rutasApoyo = [
     branches: [
       _rama('/apoyo/inicio', () => const InicioApoyoView()),
       _rama('/apoyo/servicios', () => const SolicitudesView.apoyo()),
-      _rama('/apoyo/mensajes', () => const PlaceholderFuncionalidad()),
+      _rama('/apoyo/mensajes', () => const ChatsView.apoyo()),
       _rama('/apoyo/perfil', () => const PerfilApoyoView()),
     ],
   ),
@@ -304,6 +314,14 @@ final List<RouteBase> _rutasApoyo = [
   GoRoute(
     path: '/apoyo/historial-solicitudes',
     builder: (_, __) => const HistorialSolicitudesView.apoyo(),
+  ),
+  GoRoute(
+    path: '/apoyo/chat/:id',
+    builder: (_, state) => ChatView(idSolicitud: state.pathParameters['id']!),
+  ),
+  GoRoute(
+    path: '/apoyo/historial-chats',
+    builder: (_, __) => const HistorialChatsView.apoyo(),
   ),
 ];
 
