@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../viewmodel/chat_vm.dart';
+import '../viewmodel/utilidades/errores.dart';
 
 class ChatView extends StatelessWidget {
   final String idSolicitud;
@@ -26,6 +27,7 @@ class _Contenido extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
+    final mensajes = vm.mensajes.reversed.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -54,34 +56,45 @@ class _Contenido extends StatelessWidget {
               ),
 
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(12),
-                children: [
-                  for (final m in vm.mensajes)
-                    if (m.esAutomatico)
-                      _avisoAutomatico(m.texto)
-                    else
-                      Align(
-                        alignment: m.uidEmisor == vm.uidActual
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 3),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: m.uidEmisor == vm.uidActual
-                                ? _naranja.withValues(alpha: 0.3)
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(m.texto),
-                        ),
+              child: mensajes.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Aún no hay mensajes.',
+                        style: TextStyle(color: Colors.black54),
                       ),
-                ],
-              ),
+                    )
+                  : ListView.builder(
+                      reverse: true,
+                      padding: const EdgeInsets.all(12),
+                      itemCount: mensajes.length,
+                      itemBuilder: (context, i) {
+                        final m = mensajes[i];
+
+                        if (m.esAutomatico) return _avisoAutomatico(m.texto);
+
+                        final esMio = vm.esMio(m);
+                        return Align(
+                          alignment: esMio
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: esMio
+                                  ? _naranja.withValues(alpha: 0.3)
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(m.texto),
+                          ),
+                        );
+                      },
+                    ),
             ),
+
             vm.puedeEscribir
-                ? _barraEscribir()
+                ? _BarraEscribir(onEnviar: vm.enviar)
                 : _barraBloqueada(vm.textoBloqueo),
           ],
         ),
@@ -105,31 +118,68 @@ class _Contenido extends StatelessWidget {
     );
   }
 
-  Widget _barraEscribir() {
-    return const Padding(
-      padding: EdgeInsets.all(8),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Escribe un mensaje',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          IconButton(onPressed: null, icon: Icon(Icons.send)),
-        ],
-      ),
-    );
-  }
-
   Widget _barraBloqueada(String texto) {
     return Container(
       width: double.infinity,
       color: Colors.grey.shade200,
       padding: const EdgeInsets.all(14),
       child: Text(texto, style: const TextStyle(color: Colors.black54)),
+    );
+  }
+}
+
+class _BarraEscribir extends StatefulWidget {
+  final Future<void> Function(String texto) onEnviar;
+
+  const _BarraEscribir({required this.onEnviar});
+
+  @override
+  State<_BarraEscribir> createState() => _BarraEscribirState();
+}
+
+class _BarraEscribirState extends State<_BarraEscribir> {
+  final TextEditingController _controlador = TextEditingController();
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    final texto = _controlador.text.trim();
+    if (texto.isEmpty) return;
+    _controlador.clear();
+
+    final ok = await ejecutarAccion(context, () => widget.onEnviar(texto));
+    if (!ok && mounted) _controlador.text = texto;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controlador,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'Escribe un mensaje',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _enviar,
+            icon: const Icon(Icons.send),
+            color: const Color(0xFFFF941F),
+          ),
+        ],
+      ),
     );
   }
 }

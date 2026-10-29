@@ -1,11 +1,13 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../consultas/auth_repo.dart';
+import '../consultas/chat_repo.dart';
 import '../consultas/solicitud_repo.dart';
 import '../model/chat/mensaje.dart';
-import '../model/solicitud/solicitud.dart';
 import '../model/solicitud/estado_solicitud.dart';
+import '../model/solicitud/solicitud.dart';
 import 'utilidades/fecha_hora.dart';
 
 class ChatViewModel extends ChangeNotifier {
@@ -13,10 +15,14 @@ class ChatViewModel extends ChangeNotifier {
   ChatViewModel(this.idSolicitud);
 
   final SolicitudRepo _solicitudRepo = SolicitudRepo();
+  final ChatRepo _chatRepo = ChatRepo();
   final AuthRepo _authRepo = AuthRepo();
-  StreamSubscription<Solicitud?>? _suscripcion;
+
+  StreamSubscription<Solicitud?>? _subSolicitud;
+  StreamSubscription<List<Mensaje>>? _subMensajes;
 
   Solicitud? solicitud;
+  List<Mensaje> mensajes = [];
 
   String get uidActual => _authRepo.uidActual ?? '';
 
@@ -45,7 +51,7 @@ class ChatViewModel extends ChangeNotifier {
         : 'Servicio en progreso desde las ${hhmm(inicio)}.';
   }
 
-  //mismas condiciones que PanelPago, cambiar despues a mas oficial
+  //mismas condiciones que PanelPago
   String? get avisoPago {
     final s = solicitud;
     if (s == null) return null;
@@ -71,22 +77,35 @@ class ChatViewModel extends ChangeNotifier {
       ? '/cuidador/detalle-solicitud/$idSolicitud'
       : '/apoyo/detalle-solicitud/$idSolicitud';
 
-  //cambiar por mensajes reales en firestore despues
-  List<Mensaje> get mensajes => [
-    const Mensaje(uidEmisor: 'otro', texto: 'test mensaje 1'),
-    Mensaje(uidEmisor: uidActual, texto: 'test mensaje 2'),
-  ];
+  bool esMio(Mensaje m) => m.uidEmisor == uidActual;
 
   void escuchar() {
-    _suscripcion = _solicitudRepo.solicitud(idSolicitud).listen((s) {
+    _subSolicitud = _solicitudRepo.solicitud(idSolicitud).listen((s) {
       solicitud = s;
       notifyListeners();
     });
+
+    _subMensajes = _chatRepo.mensajes(idSolicitud).listen((lista) {
+      mensajes = lista;
+      notifyListeners();
+    }, onError: (e) => debugPrint('Error escuchando mensajes: $e'));
+  }
+
+  Future<void> enviar(String texto) async {
+    final limpio = texto.trim();
+    if (limpio.isEmpty) return;
+    if (!puedeEscribir) throw Exception(textoBloqueo);
+
+    await _chatRepo.enviar(
+      idSolicitud,
+      Mensaje(uidEmisor: uidActual, texto: limpio),
+    );
   }
 
   @override
   void dispose() {
-    _suscripcion?.cancel();
+    _subSolicitud?.cancel();
+    _subMensajes?.cancel();
     super.dispose();
   }
 }
