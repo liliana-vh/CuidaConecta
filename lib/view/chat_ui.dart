@@ -39,11 +39,6 @@ class _Contenido extends StatelessWidget {
         top: false,
         child: Column(
           children: [
-            if (vm.avisoEstado != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _avisoAutomatico(vm.avisoEstado!),
-              ),
             if (vm.avisoPago != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),

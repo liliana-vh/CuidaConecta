@@ -42,15 +42,6 @@ class ChatViewModel extends ChangeNotifier {
     return 'El chat se activa cuando el cuidador inicia el servicio del día.';
   }
 
-  String? get avisoEstado {
-    final s = solicitud;
-    if (s == null || !s.haySesionEnCurso) return null;
-    final inicio = s.sesiones[s.indiceSesionEnCurso].inicioReal;
-    return inicio == null
-        ? 'Servicio en progreso.'
-        : 'Servicio en progreso desde las ${hhmm(inicio)}.';
-  }
-
   //mismas condiciones que PanelPago
   String? get avisoPago {
     final s = solicitud;
