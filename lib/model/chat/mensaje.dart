@@ -16,6 +16,8 @@ class Mensaje {
   });
 
   bool get esAutomatico => uidEmisor == uidSistema;
+  factory Mensaje.automatico(String texto) =>
+      Mensaje(uidEmisor: uidSistema, texto: texto);
 
   factory Mensaje.desdeMapa(String id, Map<String, dynamic> mapa) {
     return Mensaje(

@@ -4,6 +4,8 @@ import '../model/solicitud/agenda.dart';
 import '../model/solicitud/estado_solicitud.dart';
 import '../model/solicitud/sesion_solicitud.dart';
 import '../model/solicitud/solicitud.dart';
+import '../model/chat/mensaje.dart';
+import '../viewmodel/utilidades/fecha_hora.dart';
 
 class SolicitudRepo {
   final CollectionReference<Map<String, dynamic>> _coleccion = FirebaseFirestore
@@ -107,27 +109,39 @@ class SolicitudRepo {
     });
   }
 
-  //cambio a estado 'en progreso'
+  //cambio a estado 'en progreso' + mensaje de sistema en el chat
   Future<void> iniciarSesion(String id, int indice) {
+    final mensajes = <Mensaje>[];
+
     return _transformar(id, (s) async {
       final motivo = s.motivoNoPuedeIniciar(indice, DateTime.now());
       if (motivo != null) throw Exception(motivo);
 
+      final ahora = DateTime.now();
       final sesiones = [...s.sesiones];
       sesiones[indice] = sesiones[indice].copiarCon(
         estado: EstadoSesion.enProgreso,
-        inicioReal: DateTime.now(),
+        inicioReal: ahora,
+      );
+
+      final inicio = s.sesiones[indice].inicio;
+      mensajes.add(
+        Mensaje.automatico(
+          'El cuidador inició el servicio del ${nombreDia(inicio)} '
+          '${dm(inicio)} a las ${hhmm(ahora)}. El chat está activo.',
+        ),
       );
 
       return {
         'sesiones': sesiones.map((x) => x.toMap()).toList(),
         'estado': EstadoSolicitud.enProgreso,
       };
-    });
+    }, mensajes: mensajes);
   }
 
-  //estado finalizar, si no quedan sesiones por hacer, cierra la solicitud full
   Future<void> finalizarSesion(String id, int indice) {
+    final mensajes = <Mensaje>[];
+
     return _transformar(id, (s) async {
       if (indice < 0 || indice >= s.sesiones.length) {
         throw Exception('Sesión inválida.');
@@ -146,13 +160,46 @@ class SolicitudRepo {
         (x) => x.estado != EstadoSesion.finalizada,
       );
 
+      // mensaje automático////////////////////////////////////////////////////////////////
+      if (quedanPorHacer) {
+        final pendientes = sesiones
+            .where((x) => x.estado == EstadoSesion.pendiente)
+            .toList();
+        mensajes.add(
+          Mensaje.automatico(
+            pendientes.isEmpty
+                ? 'Servicio del día finalizado. El chat se cerró.'
+                : 'Servicio del día finalizado. El chat se cerró y se '
+                    'activará en la próxima sesión: '
+                    '${nombreDia(pendientes.first.inicio)} '
+                    '${dm(pendientes.first.inicio)} a las '
+                    '${hhmm(pendientes.first.inicio)}.',
+          ),
+        );
+      } else if (s.metodoPago == MetodoPago.tarjeta) {
+        mensajes.add(
+          Mensaje.automatico(
+            'El servicio finalizó por completo. Ya se puede pagar el saldo '
+            'desde los detalles de la solicitud. Fecha máxima de pago: '
+            '${nombreDia(s.fechaPago)} ${dm(s.fechaPago)}.',
+          ),
+        );
+      } else {
+        mensajes.add(
+          Mensaje.automatico(
+            'El servicio finalizó por completo. El pago en efectivo lo '
+            'confirma el cuidador desde la app.',
+          ),
+        );
+      }
+
       return {
         'sesiones': sesiones.map((x) => x.toMap()).toList(),
         'estado': quedanPorHacer
             ? EstadoSolicitud.enProgreso
             : EstadoSolicitud.finalizada,
       };
-    });
+    }, mensajes: mensajes);
   }
 
   Future<void> actualizarTarea(
@@ -162,6 +209,8 @@ class SolicitudRepo {
     required bool completada,
     String? comentario,
   }) {
+    final mensajes = <Mensaje>[];
+
     return _transformar(id, (s) async {
       if (indiceSesion < 0 || indiceSesion >= s.sesiones.length) {
         throw Exception('Sesión inválida.');
@@ -186,8 +235,14 @@ class SolicitudRepo {
       final sesiones = [...s.sesiones];
       sesiones[indiceSesion] = sesion.copiarCon(tareas: tareas);
 
+      mensajes.add(
+        Mensaje.automatico(
+          _textoActividad(tareas[indiceTarea].titulo, completada, comentario),
+        ),
+      );
+
       return {'sesiones': sesiones.map((x) => x.toMap()).toList()};
-    });
+    }, mensajes: mensajes);
   }
 
   Future<void> pagarGarantia(String id) {
@@ -218,7 +273,6 @@ class SolicitudRepo {
     });
   }
 
-  //solo se revisa manualmente en bbdd
   Future<void> reportarImpago(String id) {
     return _transformar(id, (s) async {
       if (!s.pagoVencido) {
@@ -230,14 +284,14 @@ class SolicitudRepo {
 
   // AYUDANTES ///////////////////////////////////////////////////////////
 
-  // Lee la solicitud y la actualiza
+  // Lectura y actualizaciones solcitud
   Future<void> _transformar(
     String id,
-    Future<Map<String, dynamic>> Function(Solicitud s) cambios,
-  ) async {
+    Future<Map<String, dynamic>> Function(Solicitud s) cambios, {
+    List<Mensaje>? mensajes,
+  }) async {
     final ref = _coleccion.doc(id);
 
-    // validacion ANTES, firestore no permite leer fuera de las referencias de la transacción una vez iniciada
     final doc = await ref.get();
     if (!doc.exists) throw Exception('La solicitud ya no existe.');
     final solicitud = Solicitud.desdeMapa(doc.id, doc.data()!);
@@ -247,7 +301,20 @@ class SolicitudRepo {
       final docActual = await tx.get(ref);
       if (!docActual.exists) throw Exception('La solicitud ya no existe.');
       tx.update(ref, actualizacion);
+
+      // mensajes aut del chat
+      for (final m in mensajes ?? const <Mensaje>[]) {
+        tx.set(ref.collection('mensajes').doc(), m.toMap());
+      }
     });
+  }
+
+  String _textoActividad(String titulo, bool completada, String? comentario) {
+    final base = completada
+        ? 'Actividad completada: $titulo'
+        : 'Actividad desmarcada: $titulo';
+    final nota = comentario?.trim() ?? '';
+    return nota.isEmpty ? base : '$base\nNota: $nota';
   }
 
   List<Solicitud> _aListaOrdenada(
