@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../viewmodel/chat_vm.dart';
 import '../viewmodel/utilidades/errores.dart';
+import '../viewmodel/utilidades/fecha_hora.dart';
 
 class ChatView extends StatelessWidget {
   final String idSolicitud;
@@ -24,9 +25,13 @@ class _Contenido extends StatelessWidget {
 
   static const Color _naranja = Color(0xFFFF941F);
 
+  bool _mismoDia(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
+
     final mensajes = vm.mensajes.reversed.toList();
 
     return Scaffold(
@@ -44,6 +49,7 @@ class _Contenido extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _avisoAutomatico(
                   vm.avisoPago!,
+                  // solo el cliente paga; el cuidador solo espera
                   onIrAPagar: vm.esCuidador
                       ? null
                       : () => context.push(vm.rutaDetalle),
@@ -64,25 +70,56 @@ class _Contenido extends StatelessWidget {
                       itemCount: mensajes.length,
                       itemBuilder: (context, i) {
                         final m = mensajes[i];
+                        final fecha = m.creadaEn ?? DateTime.now();
 
-                        if (m.esAutomatico) return _avisoAutomatico(m.texto);
+                        final hayAnterior = i + 1 < mensajes.length;
+                        final anterior =
+                            hayAnterior ? mensajes[i + 1].creadaEn : null;
+
+                        final cambioDia = !hayAnterior ||
+                            (anterior != null && !_mismoDia(fecha, anterior));
 
                         final esMio = vm.esMio(m);
-                        return Align(
-                          alignment: esMio
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: esMio
-                                  ? _naranja.withValues(alpha: 0.3)
-                                  : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(m.texto),
-                          ),
+
+                        return Column(
+                          children: [
+                            if (cambioDia) _separadorDia(fecha),
+                            if (m.esAutomatico)
+                              _avisoAutomatico(m.texto)
+                            else
+                              Align(
+                                alignment: esMio
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 3),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: esMio
+                                        ? _naranja.withValues(alpha: 0.3)
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(m.texto),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        m.creadaEn == null
+                                            ? 'enviando...'
+                                            : hhmm(fecha),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.black45,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         );
                       },
                     ),
@@ -93,6 +130,16 @@ class _Contenido extends StatelessWidget {
                 : _barraBloqueada(vm.textoBloqueo),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _separadorDia(DateTime fecha) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Text(
+        '${nombreDia(fecha)} ${dm(fecha)}',
+        style: const TextStyle(color: Colors.black54, fontSize: 12),
       ),
     );
   }
