@@ -28,7 +28,12 @@ class _Contenido extends StatelessWidget {
 
     return Column(
       children: [
-        BuscadorAvisos(filtro: vm.filtro),
+        BuscadorAvisos(
+          filtro: vm.filtro,
+          servicios: vm.serviciosDisponibles,
+          tarifaTope: vm.tarifaTope,
+          contarResultados: () => vm.filtrados.length,
+        ),
         const SizedBox(height: 8),
         Expanded(child: _lista(vm)),
       ],
