@@ -24,6 +24,9 @@ class InicioApoyoViewModel extends ChangeNotifier {
 
   List<AvisoServicio> get filtrados => filtro.aplicar(_todos);
 
+  List<String> get serviciosDisponibles => FiltroAvisos.serviciosEn(_todos);
+  double get tarifaTope => FiltroAvisos.tarifaTopeEn(_todos);
+
   void escuchar() {
     _suscripcion = _avisoRepo.avisosActivos().listen(
       (lista) {
