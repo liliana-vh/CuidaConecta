@@ -7,6 +7,7 @@ import '../lista_servicios.dart';
 import 'tarea_realizada.dart';
 import 'agenda.dart';
 import '../../viewmodel/utilidades/fecha_hora.dart';
+import '../identidad_usuario.dart';
 
 class Solicitud {
   final String id;
@@ -155,6 +156,19 @@ class Solicitud {
   bool get puedePagarFinal =>
       estado == EstadoSolicitud.finalizada && !pagoRealizado;
 
+//chat temporal antes de hacerle repo///////////////////////////////////////////////////////////////////
+  bool get tieneChat => tipoCliente == TipoUsuario.apoyo;
+  bool get chatActivo => tieneChat && haySesionEnCurso;
+
+  bool get chatVigente =>
+      tieneChat &&
+      (estado == EstadoSolicitud.aceptada ||
+          estado == EstadoSolicitud.enProgreso ||
+          (estado == EstadoSolicitud.finalizada && !pagoRealizado));
+
+  bool get chatEnHistorial =>
+      tieneChat && estado == EstadoSolicitud.finalizada && pagoRealizado;
+
   //pago vencido solo aplica a metodo tarjeta, dia maximo domingos x semana (agregar metodo efectivo??)
   bool get pagoVencido {
     if (metodoPago != MetodoPago.tarjeta) return false;
@@ -202,7 +216,7 @@ class Solicitud {
     if (requiereGarantia && !garantiaPagada) {
       return 'Falta el pago de la garantía inicial.';
     }
-   //eliminar en presentacion final el modopruebas o no?? limite es de 24 hrs antes PREGUNTAR PROFE 
+    //eliminar en presentacion final el modopruebas o no?? limite es de 24 hrs antes PREGUNTAR PROFE
     if (!ReglasServicio.modoPruebas) {
       final mismoDia =
           ahora.year == sesion.inicio.year &&
@@ -220,7 +234,7 @@ class Solicitud {
         : 'Pago semanal en efectivo: se paga el último día de servicio ($dia).';
   }
 
-//para firestore (separar en otro model o aqui nomas?)
+  //para firestore (separar en otro model o aqui nomas?)
   factory Solicitud.desdeMapa(String id, Map<String, dynamic> mapa) {
     return Solicitud(
       id: id,

@@ -11,7 +11,7 @@ import 'widgets/detalle_solicitud/info_solicitud_tarjeta.dart';
 import 'widgets/detalle_solicitud/tarjeta_sesion.dart';
 import 'widgets/detalle_solicitud/panel_pago.dart';
 
-// Detalle solicitud compartido por cuidador y apoyo
+// Detalle solicitud (compartido por cuidador y apoyo)
 class DetalleSolicitudView extends StatelessWidget {
   final String idSolicitud;
 
@@ -74,7 +74,6 @@ class _Contenido extends StatelessWidget {
         InfoSolicitudTarjeta(solicitud: s, mostrarNombreCliente: esCuidador),
         const SizedBox(height: 16),
 
-        // PanelPago solo usa los callbacks que le corresponden al rol
         PanelPago(
           solicitud: s,
           esCuidador: esCuidador,
@@ -85,6 +84,18 @@ class _Contenido extends StatelessWidget {
           onReportarImpago: () => ejecutarAccion(context, vm.reportarImpago),
         ),
         const SizedBox(height: 16),
+
+        // acceso al chat de esta solicitud/////////////////////////////////////////////////////
+        if (s.chatVigente || s.chatEnHistorial) ...[
+          OutlinedButton.icon(
+            onPressed: () => context.push(
+              '${esCuidador ? '/cuidador' : '/apoyo'}/chat/${s.id}',
+            ),
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: Text(s.chatActivo ? 'Abrir chat (activo)' : 'Ver chat'),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         if (esCuidador && s.estado == EstadoSolicitud.pendiente)
           _panelPendiente(context, vm, s),
