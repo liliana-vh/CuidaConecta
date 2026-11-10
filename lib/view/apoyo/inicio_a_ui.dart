@@ -4,17 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../model/cuidador/aviso_servicio.dart';
 import '../../viewmodel/apoyo/inicio_a_vm.dart';
+import '../widgets/aviso/buscador_avisos.dart';
 import '../widgets/aviso/tarjeta_aviso.dart';
-import '../widgets/aviso/lista_en_vivo.dart';
-import '../widgets/barra_busqueda_placeholder.dart';
 
 class InicioApoyoView extends StatelessWidget {
   const InicioApoyoView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Provider(
-      create: (_) => InicioApoyoViewModel(),
+    return ChangeNotifierProvider(
+      create: (_) => InicioApoyoViewModel()..escuchar(),
       child: const _Contenido(),
     );
   }
@@ -25,28 +24,61 @@ class _Contenido extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<InicioApoyoViewModel>();
+    final vm = context.watch<InicioApoyoViewModel>();
 
     return Column(
       children: [
-        const BarraBusquedaPlaceholder(texto: 'Filtrar avisos (próximamente)'),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListaEnVivo<AvisoServicio>(
-            stream: vm.avisos,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            mensajeError: 'No se pudieron cargar los avisos.',
-            mensajeVacio: 'No hay avisos de cuidadores disponibles.',
-            itemBuilder: (context, aviso) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TarjetaAviso(
-                aviso: aviso,
-                onTapCallback: () => context.push('/aviso/${aviso.id}'),
-              ),
-            ),
-          ),
+        BuscadorAvisos(
+          filtro: vm.filtro,
+          servicios: vm.serviciosDisponibles,
+          tarifaTope: vm.tarifaTope,
+          contarResultados: () => vm.filtrados.length,
         ),
+        const SizedBox(height: 8),
+        Expanded(child: _lista(vm)),
       ],
+    );
+  }
+
+  Widget _lista(InicioApoyoViewModel vm) {
+    if (vm.cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (vm.error != null) {
+      return _mensaje(vm.error!);
+    }
+
+    final List<AvisoServicio> avisos = vm.filtrados;
+    if (avisos.isEmpty) {
+      return _mensaje(
+        vm.filtro.hayBusqueda
+            ? 'Ningún aviso coincide con tu búsqueda.'
+            : 'No hay avisos de cuidadores disponibles.',
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      itemCount: avisos.length,
+      itemBuilder: (context, i) {
+        final aviso = avisos[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: TarjetaAviso(
+            aviso: aviso,
+            onTapCallback: () => context.push('/aviso/${aviso.id}'),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _mensaje(String texto) {
+    return Center(
+      child: Text(
+        texto,
+        style: const TextStyle(fontSize: 16, color: Colors.black54),
+      ),
     );
   }
 }
