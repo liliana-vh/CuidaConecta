@@ -13,7 +13,7 @@ class Comprobante {
   final double monto;
   final double comision;
   final String metodoPago;
-  final String uidRegistrador;
+  final String uidRegistrador;  
   final DateTime? creadoEn;
 
   const Comprobante({
