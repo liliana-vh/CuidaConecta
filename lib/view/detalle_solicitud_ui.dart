@@ -10,6 +10,7 @@ import 'widgets/detalle_solicitud/estado_visual.dart';
 import 'widgets/detalle_solicitud/info_solicitud_tarjeta.dart';
 import 'widgets/detalle_solicitud/tarjeta_sesion.dart';
 import 'widgets/detalle_solicitud/panel_pago.dart';
+import 'widgets/detalle_solicitud/seccion_comprobantes.dart';
 
 // Detalle solicitud (compartido por cuidador y apoyo)
 class DetalleSolicitudView extends StatelessWidget {
@@ -96,6 +97,8 @@ class _Contenido extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
+
+        SeccionComprobantes(solicitud: s, comprobantes: vm.comprobantes),
 
         if (esCuidador && s.estado == EstadoSolicitud.pendiente)
           _panelPendiente(context, vm, s),

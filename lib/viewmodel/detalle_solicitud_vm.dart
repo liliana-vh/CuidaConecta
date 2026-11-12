@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../consultas/auth_repo.dart';
+import '../consultas/comprobante_repo.dart';
 import '../consultas/solicitud_repo.dart';
+import '../model/solicitud/comprobante.dart';
 import '../model/solicitud/solicitud.dart';
 
 class DetalleSolicitudViewModel extends ChangeNotifier {
@@ -12,13 +14,16 @@ class DetalleSolicitudViewModel extends ChangeNotifier {
   DetalleSolicitudViewModel(this.idSolicitud);
 
   final SolicitudRepo _solicitudRepo = SolicitudRepo();
+  final ComprobanteRepo _comprobanteRepo = ComprobanteRepo();
   final AuthRepo _authRepo = AuthRepo();
 
   StreamSubscription<Solicitud?>? _suscripcion;
+  StreamSubscription<List<Comprobante>>? _subComprobantes;
 
   bool cargando = true;
   String? error;
   Solicitud? solicitud;
+  List<Comprobante> comprobantes = [];
 
   bool procesando = false;
 
@@ -47,6 +52,14 @@ class DetalleSolicitudViewModel extends ChangeNotifier {
             notifyListeners();
           },
         );
+
+    //comprobantes de pago en tiempo real
+    _subComprobantes = _comprobanteRepo.comprobantes(idSolicitud).listen((
+      lista,
+    ) {
+      comprobantes = lista;
+      notifyListeners();
+    }, onError: (e) => debugPrint('Error escuchando comprobantes: $e'));
   }
 
   //estados cuidador
@@ -111,6 +124,7 @@ class DetalleSolicitudViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _suscripcion?.cancel();
+    _subComprobantes?.cancel();
     _liberado = true;
     super.dispose();
   }
