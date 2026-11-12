@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'streams_sesion.dart';
 import '../model/solicitud/agenda.dart';
+import '../model/solicitud/comprobante.dart';
 import '../model/solicitud/estado_solicitud.dart';
 import '../model/solicitud/sesion_solicitud.dart';
 import '../model/solicitud/solicitud.dart';
@@ -245,7 +246,9 @@ class SolicitudRepo {
     }, mensajes: mensajes);
   }
 
-  Future<void> pagarGarantia(String id) {
+    Future<void> pagarGarantia(String id) {
+    final comprobantes = <Comprobante>[];
+
     return _transformar(id, (s) async {
       if (s.estado != EstadoSolicitud.aceptada) {
         throw Exception('La solicitud debe estar aceptada.');
@@ -256,21 +259,46 @@ class SolicitudRepo {
       if (s.garantiaPagada) {
         throw Exception('La garantía ya fue pagada.');
       }
+
+      comprobantes.add(
+        Comprobante(
+          tipo: TipoComprobante.garantia,
+          monto: s.montoGarantia,
+          metodoPago: s.metodoPago,
+          uidRegistrador: s.uidCliente,
+        ),
+      );
+
       return {'garantiaPagada': true};
-    });
+    }, comprobantes: comprobantes);
   }
 
-  //sim pago cuidador
+  //sim pago final: tarjeta lo paga el cliente, efectivo lo confirma el cuidador
   Future<void> registrarPagoFinal(String id) {
+    final comprobantes = <Comprobante>[];
+
     return _transformar(id, (s) async {
       if (!s.puedePagarFinal) {
         throw Exception('Aún no se puede pagar: falta finalizar el servicio.');
       }
-      return {
-        'pagoRealizado': true,
-        'comisionPlataforma': s.calcularComision(),
-      };
-    });
+
+      final comision = s.calcularComision(); // 0 si es efectivo
+      final esTarjeta = s.metodoPago == MetodoPago.tarjeta;
+
+      comprobantes.add(
+        Comprobante(
+          tipo: esTarjeta
+              ? TipoComprobante.saldoFinal
+              : TipoComprobante.pagoEfectivo,
+          monto: esTarjeta ? s.montoEstimado - s.montoGarantia : s.montoEstimado,
+          comision: comision,
+          metodoPago: s.metodoPago,
+          uidRegistrador: esTarjeta ? s.uidCliente : s.uidCuidador,
+        ),
+      );
+
+      return {'pagoRealizado': true, 'comisionPlataforma': comision};
+    }, comprobantes: comprobantes);
   }
 
   Future<void> reportarImpago(String id) {
@@ -289,6 +317,7 @@ class SolicitudRepo {
     String id,
     Future<Map<String, dynamic>> Function(Solicitud s) cambios, {
     List<Mensaje>? mensajes,
+    List<Comprobante>? comprobantes,
   }) async {
     final ref = _coleccion.doc(id);
 
@@ -305,6 +334,11 @@ class SolicitudRepo {
       // mensajes aut del chat
       for (final m in mensajes ?? const <Mensaje>[]) {
         tx.set(ref.collection('mensajes').doc(), m.toMap());
+      }
+
+      // comprobantes de pago
+      for (final c in comprobantes ?? const <Comprobante>[]) {
+        tx.set(ref.collection('comprobantes').doc(), c.toMap());
       }
     });
   }
